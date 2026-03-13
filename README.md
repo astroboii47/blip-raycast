@@ -4,6 +4,10 @@ Send files and folders to Blip from Raycast.
 
 Blip does not expose a public file-send API on macOS, so this extension triggers Blip through its Finder `Services` action.
 
+## Screenshot
+
+![Blip Raycast command](docs/raycast-command.png)
+
 ## Commands
 
 - `Send to Blip`: opens a form with a file picker and pre-fills it from the current Finder selection when possible.
