@@ -4,8 +4,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const ACCESSIBILITY_SETTINGS_PATH = "System Settings > Privacy & Security > Accessibility";
-const ACCESSIBILITY_ERROR_PREFIX =
-  "Raycast needs Accessibility permission to trigger Blip via Finder Services.";
+const ACCESSIBILITY_ERROR_PREFIX = "Raycast needs Accessibility permission to trigger Blip via Finder Services.";
 
 export async function sendPathToBlip(path: string) {
   if (!path) {
