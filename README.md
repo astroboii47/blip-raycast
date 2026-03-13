@@ -1,6 +1,6 @@
-# Blip Raycast
+# Blip
 
-A Raycast extension for sending files and folders to Blip on macOS.
+Send files and folders to Blip from Raycast.
 
 Blip does not expose a public file-send API on macOS, so this extension triggers Blip through its Finder `Services` action.
 
