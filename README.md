@@ -33,9 +33,3 @@ The extension reveals the selected file in Finder and triggers Blip's Finder `Se
 - The extension selects the file in Finder and invokes Blip's `Blip…` service.
 - Blip then opens its send flow with the selected file attached.
 - If Accessibility is missing, the command will fail with setup instructions.
-
-## Before publishing
-
-- Replace `assets/blip-icon.png` with your final extension icon
-- Update the `author` fields in `package.json` to your Raycast author handle
-- Add screenshots and usage notes, including the Accessibility setup step
