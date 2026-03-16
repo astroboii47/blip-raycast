@@ -1,12 +1,12 @@
 import { closeMainWindow, popToRoot, showHUD, showToast, Toast } from "@raycast/api";
 import { getSelectedFinderPaths } from "./finder";
-import { sendCurrentFinderSelectionToBlip } from "./blip";
+import { sendPathsToBlip } from "./blip";
 
 export default async function command() {
   try {
     const paths = await getSelectedFinderPaths();
     await closeMainWindow();
-    await sendCurrentFinderSelectionToBlip();
+    await sendPathsToBlip(paths);
     await popToRoot();
     await showHUD(paths.length === 1 ? "Sent to Blip" : `Sent ${paths.length} items to Blip`);
   } catch (error) {
