@@ -1,7 +1,7 @@
 import { Action, ActionPanel, Form, Icon, Toast, showToast } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { sendPathToBlip } from "./blip";
-import { getFirstSelectedFinderPath } from "./finder";
+import { sendPathsToBlip } from "./blip";
+import { getSelectedFinderPaths } from "./finder";
 
 type Values = {
   path: string[];
@@ -16,9 +16,9 @@ export default function Command() {
 
     async function loadFinderSelection() {
       try {
-        const path = await getFirstSelectedFinderPath();
+        const paths = await getSelectedFinderPaths();
         if (isMounted) {
-          setSelectedPaths([path]);
+          setSelectedPaths(paths);
         }
       } catch {
         // Finder selection is optional for this command.
@@ -37,13 +37,11 @@ export default function Command() {
   }, []);
 
   async function handleSubmit(values: Values) {
-    const path = values.path[0];
-
     try {
-      await sendPathToBlip(path);
+      await sendPathsToBlip(values.path);
       await showToast({
         style: Toast.Style.Success,
-        title: "Sent to Blip",
+        title: values.path.length === 1 ? "Sent to Blip" : `Sent ${values.path.length} items to Blip`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to send the selected file to Blip.";
@@ -70,7 +68,7 @@ export default function Command() {
         title="File or Folder"
         value={selectedPaths}
         onChange={setSelectedPaths}
-        allowMultipleSelection={false}
+        allowMultipleSelection={true}
         canChooseDirectories
         canChooseFiles
       />
