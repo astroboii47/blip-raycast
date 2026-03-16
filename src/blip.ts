@@ -7,7 +7,22 @@ const ACCESSIBILITY_SETTINGS_PATH = "System Settings > Privacy & Security > Acce
 const ACCESSIBILITY_ERROR_PREFIX = "Raycast needs Accessibility permission to trigger Blip via Finder Services.";
 
 export async function sendPathToBlip(path: string) {
-  return sendPathsToBlip([path]);
+  if (!path) {
+    throw new Error("Choose a file or folder first.");
+  }
+
+  if (!existsSync(path)) {
+    throw new Error(`Path does not exist: ${path}`);
+  }
+
+  const script = [
+    'tell application "Finder" to activate',
+    `tell application "Finder" to reveal POSIX file ${quoted(path)}`,
+    `tell application "Finder" to select POSIX file ${quoted(path)}`,
+    'tell application "System Events" to tell process "Finder" to click menu item "Blip…" of menu 1 of menu item "Services" of menu 1 of menu bar item "Finder" of menu bar 1',
+  ];
+
+  return runAppleScript(script);
 }
 
 export async function sendPathsToBlip(paths: string[]) {
@@ -15,24 +30,25 @@ export async function sendPathsToBlip(paths: string[]) {
     throw new Error("Choose at least one file or folder first.");
   }
 
-  for (const path of paths) {
-    if (!path) {
-      throw new Error("Choose at least one file or folder first.");
-    }
-
-    if (!existsSync(path)) {
-      throw new Error(`Path does not exist: ${path}`);
-    }
+  if (paths.length === 1) {
+    return sendPathToBlip(paths[0]);
   }
 
-  const fileList = `{${paths.map((path) => `POSIX file ${quoted(path)}`).join(", ")}}`;
+  throw new Error(
+    "Sending multiple manually chosen items is not supported yet. Select the files in Finder first, then run `Send Selected Finder Item to Blip`.",
+  );
+}
+
+export async function sendCurrentFinderSelectionToBlip() {
   const script = [
     'tell application "Finder" to activate',
-    `tell application "Finder" to reveal ${fileList}`,
-    `tell application "Finder" to select ${fileList}`,
     'tell application "System Events" to tell process "Finder" to click menu item "Blip…" of menu 1 of menu item "Services" of menu 1 of menu bar item "Finder" of menu bar 1',
   ];
 
+  return runAppleScript(script);
+}
+
+async function runAppleScript(script: string[]) {
   try {
     for (const line of script) {
       await execFileAsync("/usr/bin/osascript", ["-e", line]);
