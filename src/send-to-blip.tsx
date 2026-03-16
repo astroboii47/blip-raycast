@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Form, Icon, Toast, showToast } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { sendPathsToBlip } from "./blip";
+import { sendCurrentFinderSelectionToBlip, sendPathsToBlip } from "./blip";
 import { getSelectedFinderPaths } from "./finder";
 
 type Values = {
@@ -9,6 +9,7 @@ type Values = {
 
 export default function Command() {
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+  const [finderSelectionPaths, setFinderSelectionPaths] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +19,7 @@ export default function Command() {
       try {
         const paths = await getSelectedFinderPaths();
         if (isMounted) {
+          setFinderSelectionPaths(paths);
           setSelectedPaths(paths);
         }
       } catch {
@@ -38,7 +40,11 @@ export default function Command() {
 
   async function handleSubmit(values: Values) {
     try {
-      await sendPathsToBlip(values.path);
+      if (matchesFinderSelection(values.path, finderSelectionPaths)) {
+        await sendCurrentFinderSelectionToBlip();
+      } else {
+        await sendPathsToBlip(values.path);
+      }
       await showToast({
         style: Toast.Style.Success,
         title: values.path.length === 1 ? "Sent to Blip" : `Sent ${values.path.length} items to Blip`,
@@ -62,7 +68,7 @@ export default function Command() {
         </ActionPanel>
       }
     >
-      <Form.Description text="Choose one or more files or folders to send. If Finder has a current selection, it will appear here automatically." />
+      <Form.Description text="Choose a file or folder to send. If Finder has a current selection, it will appear here automatically. Raycast needs Accessibility permission to trigger Blip's Finder Services action." />
       <Form.FilePicker
         id="path"
         title="File or Folder"
@@ -74,4 +80,12 @@ export default function Command() {
       />
     </Form>
   );
+}
+
+function matchesFinderSelection(paths: string[], finderSelectionPaths: string[]) {
+  if (paths.length === 0 || paths.length !== finderSelectionPaths.length) {
+    return false;
+  }
+
+  return paths.every((path, index) => path === finderSelectionPaths[index]);
 }

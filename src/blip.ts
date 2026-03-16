@@ -3,33 +3,26 @@ import { existsSync } from "node:fs";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const BLIP_SHARE_SCRIPT = `
-function run(argv) {
-  ObjC.import("AppKit");
-
-  const items = argv.map((path) => $.NSURL.fileURLWithPath(path));
-  const services = $.NSSharingService.sharingServicesForItems(items);
-  let blipService = null;
-
-  for (let index = 0; index < services.count; index++) {
-    const service = services.objectAtIndex(index);
-    if (ObjC.unwrap(service.title) === "Blip") {
-      blipService = service;
-      break;
-    }
-  }
-
-  if (!blipService) {
-    throw new Error("Blip share service not found");
-  }
-
-  blipService.performWithItems(items);
-  delay(1);
-}
-`;
+const ACCESSIBILITY_SETTINGS_PATH = "System Settings > Privacy & Security > Accessibility";
+const ACCESSIBILITY_ERROR_PREFIX = "Raycast needs Accessibility permission to trigger Blip via Finder Services.";
 
 export async function sendPathToBlip(path: string) {
-  return sendPathsToBlip([path]);
+  if (!path) {
+    throw new Error("Choose a file or folder first.");
+  }
+
+  if (!existsSync(path)) {
+    throw new Error(`Path does not exist: ${path}`);
+  }
+
+  const script = [
+    'tell application "Finder" to activate',
+    `tell application "Finder" to reveal POSIX file ${quoted(path)}`,
+    `tell application "Finder" to select POSIX file ${quoted(path)}`,
+    'tell application "System Events" to tell process "Finder" to click menu item "Blip…" of menu 1 of menu item "Services" of menu 1 of menu bar item "Finder" of menu bar 1',
+  ];
+
+  return runAppleScript(script);
 }
 
 export async function sendPathsToBlip(paths: string[]) {
@@ -37,33 +30,57 @@ export async function sendPathsToBlip(paths: string[]) {
     throw new Error("Choose at least one file or folder first.");
   }
 
-  for (const path of paths) {
-    if (!path) {
-      throw new Error("Choose at least one file or folder first.");
-    }
-
-    if (!existsSync(path)) {
-      throw new Error(`Path does not exist: ${path}`);
-    }
+  if (paths.length === 1) {
+    return sendPathToBlip(paths[0]);
   }
 
+  throw new Error(
+    "Sending multiple manually chosen items is not supported yet. Select the files in Finder first, then run `Send Selected Finder Item to Blip`.",
+  );
+}
+
+export async function sendCurrentFinderSelectionToBlip() {
+  const script = [
+    'tell application "Finder" to activate',
+    'tell application "System Events" to tell process "Finder" to click menu item "Blip…" of menu 1 of menu item "Services" of menu 1 of menu bar item "Finder" of menu bar 1',
+  ];
+
+  return runAppleScript(script);
+}
+
+async function runAppleScript(script: string[]) {
   try {
-    await execFileAsync("/usr/bin/osascript", ["-l", "JavaScript", "-e", BLIP_SHARE_SCRIPT, "--", ...paths]);
+    for (const line of script) {
+      await execFileAsync("/usr/bin/osascript", ["-e", line]);
+    }
   } catch (error) {
-    const details = error instanceof Error ? error.message : "Unknown share service failure.";
-    throw new Error(buildBlipShareError(details));
+    const details = error instanceof Error ? error.message : "Unknown AppleScript failure.";
+    throw new Error(buildAppleScriptError(details));
   }
 }
 
-function buildBlipShareError(details: string) {
+function quoted(value: string) {
+  return JSON.stringify(value);
+}
+
+function buildAppleScriptError(details: string) {
   const normalizedDetails = details.toLowerCase();
 
   if (
-    normalizedDetails.includes("blip share service not found") ||
-    normalizedDetails.includes("share service not found")
+    normalizedDetails.includes("not allowed assistive access") ||
+    normalizedDetails.includes("not authorised to send keystrokes") ||
+    normalizedDetails.includes("not authorized to send apple events")
   ) {
-    return "Blip's share service was not found. Make sure Blip is installed and available in the macOS Share menu.";
+    return `${ACCESSIBILITY_ERROR_PREFIX} Enable Raycast in ${ACCESSIBILITY_SETTINGS_PATH}.`;
   }
 
-  return `Blip could not be triggered from the macOS Share menu. ${details}`;
+  if (
+    normalizedDetails.includes("menu item") &&
+    normalizedDetails.includes("blip") &&
+    normalizedDetails.includes("not found")
+  ) {
+    return "Blip's Finder service was not found. Make sure Blip is installed and its `Services > Blip…` action is available in Finder.";
+  }
+
+  return `Blip could not be triggered from Finder Services. ${details}`;
 }
