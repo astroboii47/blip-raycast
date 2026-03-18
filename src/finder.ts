@@ -9,8 +9,3 @@ export async function getSelectedFinderPaths() {
 
   return selectedItems.map((item) => item.path);
 }
-
-export async function getFirstSelectedFinderPath() {
-  const selectedPaths = await getSelectedFinderPaths();
-  return selectedPaths[0];
-}

@@ -68,7 +68,7 @@ export default function Command() {
         </ActionPanel>
       }
     >
-      <Form.Description text="Choose a file or folder to send. If Finder has a current selection, it will appear here automatically. Raycast needs Accessibility permission to trigger Blip's Finder Services action." />
+      <Form.Description text="Choose one or more files or folders to send. If Finder has a current selection, it will appear here automatically. Raycast needs Accessibility permission to trigger Blip's Finder Services action." />
       <Form.FilePicker
         id="path"
         title="File or Folder"
